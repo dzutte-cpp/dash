@@ -279,13 +279,10 @@ UniValue help(const JSONRPCRequest& jsonRequest)
             RPCHelpMan{"help",
                 "\nList all commands, or get help for a specified command.\n",
                 {
-                    {"command", RPCArg::Type::STR, true},
-                    {"subcommand", RPCArg::Type::STR, true},
+                    {"command", RPCArg::Type::STR, /* opt */ true, /* default_val */ "", "The command to get help on"},
+                    {"subcommand", RPCArg::Type::STR, /* opt */ true, /* default_val */ "", "The subcommand to get help on. Please note that not all subcommands support this at the moment"},
                 }}
                 .ToString() +
-            "\nArguments:\n"
-            "1. \"command\"     (string, optional) The command to get help on\n"
-            "2. \"subcommand\"  (string, optional) The subcommand to get help on. Please note that not all subcommands support this at the moment\n"
             "\nResult:\n"
             "\"text\"     (string) The help text\n"
         );
@@ -338,9 +335,6 @@ static UniValue uptime(const JSONRPCRequest& jsonRequest)
 }
 
 // clang-format off
-/**
- * Call Table
- */
 static const CRPCCommand vRPCCommands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
