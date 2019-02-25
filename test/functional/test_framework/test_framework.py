@@ -116,7 +116,6 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         self.setup_clean_chain = False
         self.nodes = []
         self.network_thread = None
-        self.mocktime = 0
         self.rpc_timeout = 60  # Wait for up to 60 seconds for the RPC server to respond
         self.supports_cli = False
         self.bind_to_localhost_only = True
@@ -336,6 +335,19 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             extra_args = self.extra_args
         self.add_nodes(self.num_nodes, extra_args)
         self.start_nodes()
+        if not self.setup_clean_chain:
+            for n in self.nodes:
+                assert_equal(n.getblockchaininfo()["blocks"], 199)
+            # To ensure that all nodes are out of IBD, the most recent block
+            # must have a timestamp not too old (see IsInitialBlockDownload()).
+            self.log.debug('Generate a block with current time')
+            block_hash = self.nodes[0].generate(1)[0]
+            block = self.nodes[0].getblock(blockhash=block_hash, verbosity=0)
+            for n in self.nodes:
+                n.submitblock(block)
+                chain_info = n.getblockchaininfo()
+                assert_equal(chain_info["blocks"], 200)
+                assert_equal(chain_info["initialblockdownload"], False)
 
     def import_deterministic_coinbase_privkeys(self):
         if self.setup_clean_chain:
@@ -371,7 +383,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         assert_equal(len(binary), num_nodes)
         for i in range(num_nodes):
             numnode = len(self.nodes)
-            self.nodes.append(TestNode(numnode, get_datadir_path(self.options.tmpdir, numnode), self.extra_args_from_options, chain=self.chain, rpchost=rpchost, timewait=self.rpc_timeout, bitcoind=binary[i], bitcoin_cli=self.options.bitcoincli, mocktime=self.mocktime, coverage_dir=self.options.coveragedir, extra_conf=extra_confs[i], extra_args=extra_args[i], use_cli=self.options.usecli, start_perf=self.options.perf))
+            self.nodes.append(TestNode(numnode, get_datadir_path(self.options.tmpdir, numnode), self.extra_args_from_options, chain=self.chain, rpchost=rpchost, timewait=self.rpc_timeout, bitcoind=binary[i], bitcoin_cli=self.options.bitcoincli, coverage_dir=self.options.coveragedir, extra_conf=extra_confs[i], extra_args=extra_args[i], use_cli=self.options.usecli, start_perf=self.options.perf))
 
     def start_node(self, i, *args, **kwargs):
         """Start a dashd"""
@@ -515,7 +527,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
     def _initialize_chain(self, extra_args=None):
         """Initialize a pre-mined blockchain for use by the test.
 
-        Create a cache of a 200-block-long chain (with wallet) for MAX_NODES
+        Create a cache of a 199-block-long chain (with wallet) for MAX_NODES
         Afterward, create num_nodes copies from the cache."""
 
         assert self.num_nodes <= MAX_NODES
@@ -546,7 +558,6 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                     timewait=self.rpc_timeout,
                     bitcoind=self.options.bitcoind,
                     bitcoin_cli=self.options.bitcoincli,
-                    mocktime=self.mocktime,
                     coverage_dir=None,
                 ))
                 self.nodes[i].args = args
@@ -556,27 +567,22 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             for node in self.nodes:
                 node.wait_for_rpc_connection()
 
-            # Create a 200-block-long chain; each of the 4 first nodes
+            # Create a 199-block-long chain; each of the 4 first nodes
             # gets 25 mature blocks and 25 immature.
-            # Note: To preserve compatibility with older versions of
-            # initialize_chain, only 4 nodes will generate coins.
-            #
-            # blocks are created with timestamps 10 minutes apart
-            # starting from 2010 minutes in the past
-            block_time = GENESISTIME
-            for i in range(2):
-                for peer in range(4):
-                    for j in range(25):
-                        set_node_times(self.nodes, block_time)
-                        self.nodes[peer].generatetoaddress(1, self.nodes[peer].get_deterministic_priv_key().address)
-                        block_time += 156
-                    # Must sync before next peer starts generating blocks
-                    self.sync_blocks()
+            # The 4th node gets only 24 immature blocks so that the very last
+            # block in the cache does not age too much (have an old tip age).
+            # This is needed so that we are out of IBD when the test starts,
+            # see the tip age check in IsInitialBlockDownload().
+            for i in range(8):
+                self.nodes[0].generatetoaddress(25 if i != 7 else 24, self.nodes[i % 4].get_deterministic_priv_key().address)
+            sync_blocks(self.nodes)
+
+            for n in self.nodes:
+                assert_equal(n.getblockchaininfo()["blocks"], 199)
 
             # Shut them down, and clean up cache directories:
             self.stop_nodes()
             self.nodes = []
-            self.disable_mocktime()
 
             def cache_path(n, *paths):
                 chain = get_chain_folder(get_datadir_path(self.options.cachedir, n), self.chain)

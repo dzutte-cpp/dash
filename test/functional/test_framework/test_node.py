@@ -60,7 +60,7 @@ class TestNode():
     To make things easier for the test writer, any unrecognised messages will
     be dispatched to the RPC connection."""
 
-    def __init__(self, i, datadir, extra_args_from_options, *, chain, rpchost, timewait, bitcoind, bitcoin_cli, mocktime, coverage_dir, extra_conf=None, extra_args=None, use_cli=False, start_perf=False):
+    def __init__(self, i, datadir, extra_args_from_options, *, chain, rpchost, timewait, bitcoind, bitcoin_cli, coverage_dir, extra_conf=None, extra_args=None, use_cli=False, start_perf=False):
         """
         Kwargs:
             start_perf (bool): If True, begin profiling the node with `perf` as soon as
@@ -78,7 +78,6 @@ class TestNode():
         self.rpc_timeout *= Options.timeout_scale
         self.binary = bitcoind
         self.coverage_dir = coverage_dir
-        self.mocktime = mocktime
         if extra_conf is not None:
             append_config(datadir, extra_conf)
         # Most callers will just need to add extra args to the standard list below.
@@ -93,8 +92,7 @@ class TestNode():
             "-debug",
             "-debugexclude=libevent",
             "-debugexclude=leveldb",
-            "-mocktime=" + str(mocktime),
-            "-uacomment=testnode%d" % i
+            "-uacomment=testnode%d" % i,
         ]
 
         self.cli = TestNodeCLI(bitcoin_cli, self.datadir)
@@ -195,8 +193,6 @@ class TestNode():
         self.stdout = stdout
 
         all_args = self.args + self.extra_args_from_options + extra_args
-        if self.mocktime != 0:
-            all_args = all_args + ["-mocktime=%d" % self.mocktime]
 
         # Delete any existing cookie file -- if such a file exists (eg due to
         # unclean shutdown), it will get overwritten anyway by dashd, and
