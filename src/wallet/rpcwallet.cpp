@@ -501,11 +501,9 @@ static UniValue listaddressbalances(const JSONRPCRequest& request)
             RPCHelpMan{"listaddressbalances",
                 "\nLists addresses of this wallet and their balances\n",
                 {
-                    {"minamount", RPCArg::Type::NUM, true},
+                    {"minamount", RPCArg::Type::NUM, /* opt */ true, /* default_val */ "0", "Minimum balance in " + CURRENCY_UNIT + " an address should have to be shown in the list"},
                 }}
                 .ToString() +
-            "\nArguments:\n"
-            "1. minamount               (numeric, optional, default=0) Minimum balance in " + CURRENCY_UNIT + " an address should have to be shown in the list\n"
             "\nResult:\n"
             "{\n"
             "  \"address\": amount,       (string) The dash address and the amount in " + CURRENCY_UNIT + "\n"
@@ -2414,14 +2412,11 @@ static UniValue setcoinjoinrounds(const JSONRPCRequest& request)
             RPCHelpMan{"setcoinjoinrounds",
                 "\nSet the number of rounds for CoinJoin.\n",
                 {
-                    {"rounds", RPCArg::Type::NUM, false},
+                    {"rounds", RPCArg::Type::NUM, /* opt */ false, /* default_val */ "",
+                        "The default number of rounds is " + std::to_string(DEFAULT_COINJOIN_ROUNDS) +
+                        " Cannot be more than " + std::to_string(MAX_COINJOIN_ROUNDS) + " nor less than " + std::to_string(MIN_COINJOIN_ROUNDS)},
                 }}
                 .ToString() +
-            "setcoinjoinrounds rounds\n"
-            "\nSet the number of rounds for CoinJoin.\n"
-            "\nArguments:\n"
-            "1. rounds         (numeric, required) The default number of rounds is " + std::to_string(DEFAULT_COINJOIN_ROUNDS) +
-            " Cannot be more than " + std::to_string(MAX_COINJOIN_ROUNDS) + " nor less than " + std::to_string(MIN_COINJOIN_ROUNDS) +
             "\nExamples:\n"
             + HelpExampleCli("setcoinjoinrounds", "4")
             + HelpExampleRpc("setcoinjoinrounds", "16")
@@ -2449,12 +2444,11 @@ static UniValue setcoinjoinamount(const JSONRPCRequest& request)
             RPCHelpMan{"setcoinjoinamount",
                 "\nSet the goal amount in " + CURRENCY_UNIT + " for CoinJoin.\n",
                 {
-                    {"amount", RPCArg::Type::NUM, false},
+                    {"amount", RPCArg::Type::NUM, /* opt */ false, /* default_val */ "",
+                        "The default amount is " + std::to_string(DEFAULT_COINJOIN_AMOUNT) +
+                        " Cannot be more than " + std::to_string(MAX_COINJOIN_AMOUNT) + " nor less than " + std::to_string(MIN_COINJOIN_AMOUNT)},
                 }}
                 .ToString() +
-            "\nArguments:\n"
-            "1. amount         (numeric, required) The default amount is " + std::to_string(DEFAULT_COINJOIN_AMOUNT) +
-            " Cannot be more than " + std::to_string(MAX_COINJOIN_AMOUNT) + " nor less than " + std::to_string(MIN_COINJOIN_AMOUNT) +
             "\nExamples:\n"
             + HelpExampleCli("setcoinjoinamount", "500")
             + HelpExampleRpc("setcoinjoinamount", "208")
@@ -2815,11 +2809,9 @@ static UniValue loadwallet(const JSONRPCRequest& request)
                 "\nNote that all wallet command-line options used when starting dashd will be"
                 "\napplied to the new wallet (eg -zapwallettxes, upgradewallet, rescan, etc).\n",
                 {
-                    {"filename", RPCArg::Type::STR, false},
+                    {"filename", RPCArg::Type::STR, /* opt */ false, /* default_val */ "", "The wallet directory or .dat file."},
                 }}
                 .ToString() +
-            "\nArguments:\n"
-            "1. \"filename\"    (string, required) The wallet directory or .dat file.\n"
             "\nResult:\n"
             "{\n"
             "  \"name\" :    <wallet_name>,        (string) The wallet name if loaded successfully.\n"
