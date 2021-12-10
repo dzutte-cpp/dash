@@ -7,6 +7,8 @@
 
 #include <key.h>
 
+struct PKHash;
+
 /** Helper class for signing messages and checking their signatures
  */
 class CMessageSigner
@@ -20,6 +22,8 @@ public:
     static bool VerifyMessage(const CPubKey& pubkey, const std::vector<unsigned char>& vchSig, const std::string& strMessage, std::string& strErrorRet);
     /// Verify the message signature, returns true if successful
     static bool VerifyMessage(const CKeyID& keyID, const std::vector<unsigned char>& vchSig, const std::string& strMessage, std::string& strErrorRet);
+    /// Verify the message signature, returns true if successful
+    static bool VerifyMessage(const PKHash& pkHash, const std::vector<unsigned char>& vchSig, const std::string& strMessage, std::string& strErrorRet);
 };
 
 /** Helper class for signing hashes and checking their signatures
@@ -33,6 +37,8 @@ public:
     static bool VerifyHash(const uint256& hash, const CPubKey& pubkey, const std::vector<unsigned char>& vchSig, std::string& strErrorRet);
     /// Verify the hash signature, returns true if successful
     static bool VerifyHash(const uint256& hash, const CKeyID& keyID, const std::vector<unsigned char>& vchSig, std::string& strErrorRet);
+    /// Verify the hash signature, returns true if successful
+    static bool VerifyHash(const uint256& hash, const PKHash& pkHash, const std::vector<unsigned char>& vchSig, std::string& strErrorRet);
 };
 
 #endif // BITCOIN_MESSAGESIGNER_H

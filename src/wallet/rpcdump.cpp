@@ -152,7 +152,7 @@ UniValue importprivkey(const JSONRPCRequest& request)
         CKeyID vchAddress = pubkey.GetID();
         {
             pwallet->MarkDirty();
-            pwallet->SetAddressBook(vchAddress, strLabel, "receive");
+            pwallet->SetAddressBook(PKHash(vchAddress), strLabel, "receive");
 
             // Don't throw error in case a key is already there
             if (pwallet->HaveKey(vchAddress)) {
@@ -495,7 +495,7 @@ UniValue importpubkey(const JSONRPCRequest& request)
         auto locked_chain = pwallet->chain().lock();
         LOCK(pwallet->cs_wallet);
 
-        ImportAddress(pwallet, pubKey.GetID(), strLabel);
+        ImportAddress(pwallet, PKHash(pubKey.GetID()), strLabel);
         ImportScript(pwallet, GetScriptForRawPubKey(pubKey), strLabel, false);
     }
     if (fRescan)
@@ -747,10 +747,10 @@ UniValue importelectrumwallet(const JSONRPCRequest& request)
             assert(key.VerifyPubKey(pubkey));
             CKeyID keyid = pubkey.GetID();
             if (pwallet->HaveKey(keyid)) {
-                pwallet->WalletLogPrintf("Skipping import of %s (key already present)\n", EncodeDestination(keyid));
+                pwallet->WalletLogPrintf("Skipping import of %s (key already present)\n", EncodeDestination(PKHash(keyid)));
                 continue;
             }
-            pwallet->WalletLogPrintf("Importing %s...\n", EncodeDestination(keyid));
+            pwallet->WalletLogPrintf("Importing %s...\n", EncodeDestination(PKHash(keyid)));
             if (!pwallet->AddKeyPubKey(key, pubkey)) {
                 fGood = false;
                 continue;
@@ -779,10 +779,10 @@ UniValue importelectrumwallet(const JSONRPCRequest& request)
             assert(key.VerifyPubKey(pubkey));
             CKeyID keyid = pubkey.GetID();
             if (pwallet->HaveKey(keyid)) {
-                pwallet->WalletLogPrintf("Skipping import of %s (key already present)\n", EncodeDestination(keyid));
+                pwallet->WalletLogPrintf("Skipping import of %s (key already present)\n", EncodeDestination(PKHash(keyid)));
                 continue;
             }
-            pwallet->WalletLogPrintf("Importing %s...\n", EncodeDestination(keyid));
+            pwallet->WalletLogPrintf("Importing %s...\n", EncodeDestination(PKHash(keyid)));
             if (!pwallet->AddKeyPubKey(key, pubkey)) {
                 fGood = false;
                 continue;
@@ -854,12 +854,12 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
     if (!IsValidDestination(dest)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Dash address");
     }
-    const CKeyID *keyID = boost::get<CKeyID>(&dest);
-    if (!keyID) {
+    const PKHash *pkHash = boost::get<PKHash>(&dest);
+    if (!pkHash) {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to a key");
     }
     CKey vchSecret;
-    if (!pwallet->GetKey(*keyID, vchSecret)) {
+    if (!pwallet->GetKey(CKeyID(*pkHash), vchSecret)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
     }
     return EncodeSecret(vchSecret);
@@ -1037,13 +1037,14 @@ UniValue dumpwallet(const JSONRPCRequest& request)
 
     for (std::vector<std::pair<int64_t, CKeyID> >::const_iterator it = vKeyBirth.begin(); it != vKeyBirth.end(); it++) {
         const CKeyID &keyid = it->second;
+        const PKHash pkHash(keyid);
         std::string strTime = FormatISO8601DateTime(it->first);
-        std::string strAddr = EncodeDestination(keyid);
+        std::string strAddr = EncodeDestination(pkHash);
         CKey key;
         if (pwallet->GetKey(keyid, key)) {
             file << strprintf("%s %s ", EncodeSecret(key), strTime);
-            if (pwallet->mapAddressBook.count(keyid)) {
-                file << strprintf("label=%s", EncodeDumpString(pwallet->mapAddressBook[keyid].name));
+            if (pwallet->mapAddressBook.count(pkHash)) {
+                file << strprintf("label=%s", EncodeDumpString(pwallet->mapAddressBook[pkHash].name));
             } else if (mapKeyPool.count(keyid)) {
                 file << "reserve=1";
             } else {

@@ -145,11 +145,11 @@ static RPCArg GetRpcArg(const std::string& strParamName)
 static CKeyID ParsePubKeyIDFromAddress(const std::string& strAddress, const std::string& paramName)
 {
     CTxDestination dest = DecodeDestination(strAddress);
-    const CKeyID *keyID = boost::get<CKeyID>(&dest);
-    if (!keyID) {
+    const PKHash *pkHash = boost::get<PKHash>(&dest);
+    if (!pkHash) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be a valid P2PKH address, not %s", paramName, strAddress));
     }
-    return *keyID;
+    return CKeyID(*pkHash);
 }
 
 static CBLSPublicKey ParseBLSPubKey(const std::string& hexKey, const std::string& paramName)
@@ -569,8 +569,8 @@ static UniValue protx_register(const JSONRPCRequest& request)
         }
         CTxDestination txDest;
         ExtractDestination(coin.out.scriptPubKey, txDest);
-        const CKeyID *keyID = boost::get<CKeyID>(&txDest);
-        if (!keyID) {
+        const PKHash *pkHash = boost::get<PKHash>(&txDest);
+        if (!pkHash) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("collateral type not supported: %s", ptx.collateralOutpoint.ToStringShort()));
         }
 
@@ -587,7 +587,7 @@ static UniValue protx_register(const JSONRPCRequest& request)
         } else {
             // lets prove we own the collateral
             CKey key;
-            if (!pwallet->GetKey(*keyID, key)) {
+            if (!pwallet->GetKey(CKeyID(*pkHash), key)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("collateral key not in wallet: %s", EncodeDestination(txDest)));
             }
             SignSpecialTxPayloadByString(tx, ptx, key);
@@ -798,7 +798,7 @@ static UniValue protx_update_registrar(const JSONRPCRequest& request)
 
     CKey keyOwner;
     if (!pwallet->GetKey(dmn->pdmnState->keyIDOwner, keyOwner)) {
-        throw std::runtime_error(strprintf("Private key for owner address %s not found in your wallet", EncodeDestination(dmn->pdmnState->keyIDOwner)));
+        throw std::runtime_error(strprintf("Private key for owner address %s not found in your wallet", EncodeDestination(PKHash(dmn->pdmnState->keyIDOwner))));
     }
 
     CMutableTransaction tx;
@@ -951,7 +951,8 @@ static bool CheckWalletOwnsScript(CWallet* pwallet, const CScript& script) {
 
     CTxDestination dest;
     if (ExtractDestination(script, dest)) {
-        if ((boost::get<CKeyID>(&dest) && pwallet->HaveKey(*boost::get<CKeyID>(&dest))) || (boost::get<CScriptID>(&dest) && pwallet->HaveCScript(*boost::get<CScriptID>(&dest)))) {
+        if ((boost::get<PKHash>(&dest) && pwallet->HaveKey(CKeyID(*boost::get<PKHash>(&dest))))
+                || (boost::get<ScriptHash>(&dest) && pwallet->HaveCScript(CScriptID(*boost::get<ScriptHash>(&dest))))) {
             return true;
         }
     }

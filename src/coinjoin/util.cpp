@@ -36,7 +36,7 @@ void CKeyHolder::ReturnKey()
 
 CScript CKeyHolder::GetScriptForDestination() const
 {
-    return ::GetScriptForDestination(pubKey.GetID());
+    return ::GetScriptForDestination(PKHash(pubKey.GetID()));
 }
 
 
@@ -93,7 +93,7 @@ CTransactionBuilderOutput::CTransactionBuilderOutput(CTransactionBuilder* pTxBui
     assert(pTxBuilder);
     CPubKey pubKey;
     key.GetReservedKey(pubKey, false);
-    script = ::GetScriptForDestination(pubKey.GetID());
+    script = ::GetScriptForDestination(PKHash(pubKey.GetID()));
 }
 
 bool CTransactionBuilderOutput::UpdateAmount(const CAmount nNewAmount)
@@ -135,7 +135,7 @@ CTransactionBuilder::CTransactionBuilder(std::shared_ptr<CWallet> pwalletIn, con
         secret.MakeNewKey(pwallet->CanSupportFeature(FEATURE_COMPRPUBKEY));
         CPubKey dummyPubkey = secret.GetPubKey();
         dummyBatch.TxnAbort();
-        dummyScript = ::GetScriptForDestination(dummyPubkey.GetID());
+        dummyScript = ::GetScriptForDestination(PKHash(dummyPubkey.GetID()));
         // Calculate required bytes for the dummy signed tx with tallyItem's inputs only
         nBytesBase = CalculateMaximumSignedTxSize(CTransaction(dummyTx), pwallet.get(), false);
     }

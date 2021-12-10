@@ -385,7 +385,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
                 return QString();
             }
         }
-        strAddress = EncodeDestination(newKey.GetID());
+        strAddress = EncodeDestination(PKHash(newKey.GetID()));
     }
     else
     {

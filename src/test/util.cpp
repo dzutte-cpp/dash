@@ -28,10 +28,10 @@ std::string getnewaddress(CWallet& w)
     CPubKey new_key;
     if (!w.GetKeyFromPool(new_key, false)) assert(false);
 
-    CKeyID keyID = new_key.GetID();
-    w.SetAddressBook(keyID, /* label */ "", "receive");
+    PKHash pkHash(new_key.GetID());
+    w.SetAddressBook(pkHash, /* label */ "", "receive");
 
-    return EncodeDestination(keyID);
+    return EncodeDestination(pkHash);
 }
 
 void importaddress(CWallet& wallet, const std::string& address)

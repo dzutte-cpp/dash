@@ -1558,7 +1558,7 @@ bool CCoinJoinClientSession::CreateCollateralTransaction(CMutableTransaction& tx
         CReserveKey reservekey(&mixingWallet);
         bool success = reservekey.GetReservedKey(vchPubKey, true);
         assert(success); // should never fail, as we just unlocked
-        scriptChange = GetScriptForDestination(vchPubKey.GetID());
+        scriptChange = GetScriptForDestination(PKHash(vchPubKey.GetID()));
         reservekey.KeepKey();
         // return change
         txCollateral.vout.emplace_back(txout.nValue - CCoinJoin::GetCollateralAmount(), scriptChange);

@@ -51,10 +51,10 @@ static bool CheckHashSig(const ProTx& proTx, const CKeyID& keyID, CValidationSta
 }
 
 template <typename ProTx>
-static bool CheckStringSig(const ProTx& proTx, const CKeyID& keyID, CValidationState& state)
+static bool CheckStringSig(const ProTx& proTx, const PKHash& pkHash, CValidationState& state)
 {
     std::string strError;
-    if (!CMessageSigner::VerifyMessage(keyID, proTx.vchSig, proTx.MakeSignString(), strError)) {
+    if (!CMessageSigner::VerifyMessage(pkHash, proTx.vchSig, proTx.MakeSignString(), strError)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-protx-sig", false, strError);
     }
     return true;
@@ -114,7 +114,7 @@ bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValid
         return state.DoS(10, false, REJECT_INVALID, "bad-protx-payee-dest");
     }
     // don't allow reuse of payout key for other keys (don't allow people to put the payee key onto an online server)
-    if (payoutDest == CTxDestination(ptx.keyIDOwner) || payoutDest == CTxDestination(ptx.keyIDVoting)) {
+    if (payoutDest == CTxDestination(PKHash(ptx.keyIDOwner)) || payoutDest == CTxDestination(PKHash(ptx.keyIDVoting))) {
         return state.DoS(10, false, REJECT_INVALID, "bad-protx-payee-reuse");
     }
 
@@ -130,7 +130,7 @@ bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValid
     }
 
     CTxDestination collateralTxDest;
-    const CKeyID *keyForPayloadSig = nullptr;
+    const PKHash *keyForPayloadSig = nullptr;
     COutPoint collateralOutpoint;
 
     if (!ptx.collateralOutpoint.hash.IsNull()) {
@@ -145,7 +145,7 @@ bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValid
 
         // Extract key from collateral. This only works for P2PK and P2PKH collaterals and will fail for P2SH.
         // Issuer of this ProRegTx must prove ownership with this key by signing the ProRegTx
-        keyForPayloadSig = boost::get<CKeyID>(&collateralTxDest);
+        keyForPayloadSig = boost::get<PKHash>(&collateralTxDest);
         if (!keyForPayloadSig) {
             return state.DoS(10, false, REJECT_INVALID, "bad-protx-collateral-pkh");
         }
@@ -168,7 +168,7 @@ bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValid
 
     // don't allow reuse of collateral key for other keys (don't allow people to put the collateral key onto an online server)
     // this check applies to internal and external collateral, but internal collaterals are not necessarily a P2PKH
-    if (collateralTxDest == CTxDestination(ptx.keyIDOwner) || collateralTxDest == CTxDestination(ptx.keyIDVoting)) {
+    if (collateralTxDest == CTxDestination(PKHash(ptx.keyIDOwner)) || collateralTxDest == CTxDestination(PKHash(ptx.keyIDVoting))) {
         return state.DoS(10, false, REJECT_INVALID, "bad-protx-collateral-reuse");
     }
 
@@ -307,7 +307,7 @@ bool CheckProUpRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CVal
         }
 
         // don't allow reuse of payee key for other keys (don't allow people to put the payee key onto an online server)
-        if (payoutDest == CTxDestination(dmn->pdmnState->keyIDOwner) || payoutDest == CTxDestination(ptx.keyIDVoting)) {
+        if (payoutDest == CTxDestination(PKHash(dmn->pdmnState->keyIDOwner)) || payoutDest == CTxDestination(PKHash(ptx.keyIDVoting))) {
             return state.DoS(10, false, REJECT_INVALID, "bad-protx-payee-reuse");
         }
 
@@ -322,7 +322,7 @@ bool CheckProUpRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CVal
         if (!ExtractDestination(coin.out.scriptPubKey, collateralTxDest)) {
             return state.DoS(100, false, REJECT_INVALID, "bad-protx-collateral-dest");
         }
-        if (collateralTxDest == CTxDestination(dmn->pdmnState->keyIDOwner) || collateralTxDest == CTxDestination(ptx.keyIDVoting)) {
+        if (collateralTxDest == CTxDestination(PKHash(dmn->pdmnState->keyIDOwner)) || collateralTxDest == CTxDestination(PKHash(ptx.keyIDVoting))) {
             return state.DoS(10, false, REJECT_INVALID, "bad-protx-collateral-reuse");
         }
 
@@ -408,8 +408,8 @@ std::string CProRegTx::MakeSignString() const
 
     s += strPayout + "|";
     s += strprintf("%d", nOperatorReward) + "|";
-    s += EncodeDestination(keyIDOwner) + "|";
-    s += EncodeDestination(keyIDVoting) + "|";
+    s += EncodeDestination(PKHash(keyIDOwner)) + "|";
+    s += EncodeDestination(PKHash(keyIDVoting)) + "|";
 
     // ... and also the full hash of the payload as a protection against malleability and replays
     s += ::SerializeHash(*this).ToString();
@@ -426,7 +426,7 @@ std::string CProRegTx::ToString() const
     }
 
     return strprintf("CProRegTx(nVersion=%d, collateralOutpoint=%s, addr=%s, nOperatorReward=%f, ownerAddress=%s, pubKeyOperator=%s, votingAddress=%s, scriptPayout=%s)",
-        nVersion, collateralOutpoint.ToStringShort(), addr.ToString(), (double)nOperatorReward / 100, EncodeDestination(keyIDOwner), pubKeyOperator.ToString(), EncodeDestination(keyIDVoting), payee);
+        nVersion, collateralOutpoint.ToStringShort(), addr.ToString(), (double)nOperatorReward / 100, EncodeDestination(PKHash(keyIDOwner)), pubKeyOperator.ToString(), EncodeDestination(PKHash(keyIDVoting)), payee);
 }
 
 std::string CProUpServTx::ToString() const
@@ -450,7 +450,7 @@ std::string CProUpRegTx::ToString() const
     }
 
     return strprintf("CProUpRegTx(nVersion=%d, proTxHash=%s, pubKeyOperator=%s, votingAddress=%s, payoutAddress=%s)",
-        nVersion, proTxHash.ToString(), pubKeyOperator.ToString(), EncodeDestination(keyIDVoting), payee);
+        nVersion, proTxHash.ToString(), pubKeyOperator.ToString(), EncodeDestination(PKHash(keyIDVoting)), payee);
 }
 
 std::string CProUpRevTx::ToString() const

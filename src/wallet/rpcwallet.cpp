@@ -196,9 +196,9 @@ UniValue getnewaddress(const JSONRPCRequest& request)
     }
     CKeyID keyID = newKey.GetID();
 
-    pwallet->SetAddressBook(keyID, label, "receive");
+    pwallet->SetAddressBook(PKHash(keyID), label, "receive");
 
-    return EncodeDestination(keyID);
+    return EncodeDestination(PKHash(keyID));
 }
 
 static UniValue getrawchangeaddress(const JSONRPCRequest& request)
@@ -244,7 +244,7 @@ static UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
     CKeyID keyID = vchPubKey.GetID();
 
-    return EncodeDestination(keyID);
+    return EncodeDestination(PKHash(keyID));
 }
 
 
@@ -1086,12 +1086,13 @@ static UniValue addmultisigaddress(const JSONRPCRequest& request)
     // Construct using pay-to-script-hash:
     CScript inner = CreateMultisigRedeemscript(required, pubkeys);
     CScriptID innerID(inner);
+    ScriptHash scriptHash(innerID);
     pwallet->AddCScript(inner);
 
-    pwallet->SetAddressBook(innerID, label, "send");
+    pwallet->SetAddressBook(scriptHash, label, "send");
 
     UniValue result(UniValue::VOBJ);
-    result.pushKV("address", EncodeDestination(innerID));
+    result.pushKV("address", EncodeDestination(scriptHash));
     result.pushKV("redeemScript", HexStr(inner));
     return result;
 }
@@ -3834,7 +3835,12 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
     }
     ret.pushKV("ischange", pwallet->IsChange(scriptPubKey));
     const CKeyMetadata* meta = nullptr;
-    const CKeyID *key_id = boost::get<CKeyID>(&dest);
+    const PKHash *pkHash = boost::get<PKHash>(&dest);
+    const CKeyID kid = [&] {
+        if (pkHash) return CKeyID(*pkHash);
+        return CKeyID();
+    } ();
+    const CKeyID* key_id = pkHash ? &kid : nullptr;
     if (key_id != nullptr && !key_id->IsNull()) {
         auto it = pwallet->mapKeyMetadata.find(*key_id);
         if (it != pwallet->mapKeyMetadata.end()) {
@@ -3905,7 +3911,7 @@ static UniValue getaddressesbylabel(const JSONRPCRequest& request)
     // Find all addresses that have the given label
     UniValue ret(UniValue::VOBJ);
     std::set<std::string> addresses;
-    for (const std::pair<CTxDestination, CAddressBookData>& item : pwallet->mapAddressBook) {
+    for (const auto& item : pwallet->mapAddressBook) {
         if (item.second.name == label) {
             std::string address = EncodeDestination(item.first);
             // CWallet::mapAddressBook is not expected to contain duplicate
@@ -3971,7 +3977,7 @@ static UniValue listlabels(const JSONRPCRequest& request)
 
     // Add to a set to sort by label name, then insert into Univalue array
     std::set<std::string> label_set;
-    for (const std::pair<CTxDestination, CAddressBookData>& entry : pwallet->mapAddressBook) {
+    for (const auto& entry : pwallet->mapAddressBook) {
         if (purpose.empty() || entry.second.purpose == purpose) {
             label_set.insert(entry.second.name);
         }

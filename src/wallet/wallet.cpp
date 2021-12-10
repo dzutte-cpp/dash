@@ -411,7 +411,7 @@ bool CWallet::AddHDPubKey(WalletBatch &batch, const CExtPubKey &extPubKey, bool 
 
     // check if we need to remove from watch-only
     CScript script;
-    script = GetScriptForDestination(extPubKey.pubkey.GetID());
+    script = GetScriptForDestination(PKHash(extPubKey.pubkey.GetID()));
     if (HaveWatchOnly(script))
         RemoveWatchOnly(script);
     script = GetScriptForRawPubKey(extPubKey.pubkey);
@@ -3592,7 +3592,7 @@ bool CWallet::CreateTransaction(interfaces::Chain::Lock& locked_chain, const std
                     return false;
                 }
 
-                scriptChange = GetScriptForDestination(vchPubKey.GetID());
+                scriptChange = GetScriptForDestination(PKHash(vchPubKey.GetID()));
             }
 
             nFeeRet = 0;

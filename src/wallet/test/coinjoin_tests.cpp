@@ -88,7 +88,7 @@ public:
         CCoinControl coinControl;
         CPubKey pubKey;
         BOOST_CHECK(destKey.GetReservedKey(pubKey, false));
-        tallyItem.txdest = pubKey.GetID();
+        tallyItem.txdest = PKHash(pubKey.GetID());
         for (CAmount nAmount : vecAmounts) {
             {
                 auto locked_chain = chain->lock();

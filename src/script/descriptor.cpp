@@ -566,10 +566,10 @@ protected:
         out.pubkeys.emplace(id, keys[0]);
         ret.emplace_back(GetScriptForRawPubKey(keys[0])); // P2PK
         if (keys[0].IsCompressed()) {
-            CScript p2wpkh = GetScriptForDestination(id);
+            CScript p2wpkh = GetScriptForDestination(PKHash(id));
             out.scripts.emplace(CScriptID(p2wpkh), p2wpkh);
             ret.emplace_back(p2wpkh);
-            ret.emplace_back(GetScriptForDestination(CScriptID(p2wpkh))); // P2SH-P2WPKH
+            ret.emplace_back(GetScriptForDestination(ScriptHash(p2wpkh))); // P2SH-P2WPKH
         }
         return ret;
     }

@@ -39,7 +39,7 @@ std::string CDeterministicMNState::ToString() const
     return strprintf("CDeterministicMNState(nRegisteredHeight=%d, nLastPaidHeight=%d, nPoSePenalty=%d, nPoSeRevivedHeight=%d, nPoSeBanHeight=%d, nRevocationReason=%d, "
         "ownerAddress=%s, pubKeyOperator=%s, votingAddress=%s, addr=%s, payoutAddress=%s, operatorPayoutAddress=%s)",
         nRegisteredHeight, nLastPaidHeight, nPoSePenalty, nPoSeRevivedHeight, nPoSeBanHeight, nRevocationReason,
-        EncodeDestination(keyIDOwner), pubKeyOperator.Get().ToString(), EncodeDestination(keyIDVoting), addr.ToStringIPPort(false), payoutAddress, operatorPayoutAddress);
+        EncodeDestination(PKHash(keyIDOwner)), pubKeyOperator.Get().ToString(), EncodeDestination(PKHash(keyIDVoting)), addr.ToStringIPPort(false), payoutAddress, operatorPayoutAddress);
 }
 
 void CDeterministicMNState::ToJson(UniValue& obj) const
@@ -53,8 +53,8 @@ void CDeterministicMNState::ToJson(UniValue& obj) const
     obj.pushKV("PoSeRevivedHeight", nPoSeRevivedHeight);
     obj.pushKV("PoSeBanHeight", nPoSeBanHeight);
     obj.pushKV("revocationReason", nRevocationReason);
-    obj.pushKV("ownerAddress", EncodeDestination(keyIDOwner));
-    obj.pushKV("votingAddress", EncodeDestination(keyIDVoting));
+    obj.pushKV("ownerAddress", EncodeDestination(PKHash(keyIDOwner)));
+    obj.pushKV("votingAddress", EncodeDestination(PKHash(keyIDVoting)));
 
     CTxDestination dest;
     if (ExtractDestination(scriptPayout, dest)) {
@@ -466,7 +466,7 @@ void CDeterministicMNList::AddMN(const CDeterministicMNCPtr& dmn, bool fBumpTota
     if (!AddUniqueProperty(dmn, dmn->pdmnState->keyIDOwner)) {
         mnUniquePropertyMap = mnUniquePropertyMapSaved;
         throw(std::runtime_error(strprintf("%s: Can't add a masternode %s with a duplicate keyIDOwner=%s", __func__,
-                dmn->proTxHash.ToString(), EncodeDestination(dmn->pdmnState->keyIDOwner))));
+                dmn->proTxHash.ToString(), EncodeDestination(PKHash(dmn->pdmnState->keyIDOwner)))));
     }
     if (dmn->pdmnState->pubKeyOperator.Get().IsValid() && !AddUniqueProperty(dmn, dmn->pdmnState->pubKeyOperator)) {
         mnUniquePropertyMap = mnUniquePropertyMapSaved;
@@ -502,7 +502,7 @@ void CDeterministicMNList::UpdateMN(const CDeterministicMNCPtr& oldDmn, const CD
     if (!UpdateUniqueProperty(dmn, oldState->keyIDOwner, pdmnState->keyIDOwner)) {
         mnUniquePropertyMap = mnUniquePropertyMapSaved;
         throw(std::runtime_error(strprintf("%s: Can't update a masternode %s with a duplicate keyIDOwner=%s", __func__,
-                oldDmn->proTxHash.ToString(), EncodeDestination(pdmnState->keyIDOwner))));
+                oldDmn->proTxHash.ToString(), EncodeDestination(PKHash(pdmnState->keyIDOwner)))));
     }
     if (!UpdateUniqueProperty(dmn, oldState->pubKeyOperator, pdmnState->pubKeyOperator)) {
         mnUniquePropertyMap = mnUniquePropertyMapSaved;
@@ -555,7 +555,7 @@ void CDeterministicMNList::RemoveMN(const uint256& proTxHash)
     if (!DeleteUniqueProperty(dmn, dmn->pdmnState->keyIDOwner)) {
         mnUniquePropertyMap = mnUniquePropertyMapSaved;
         throw(std::runtime_error(strprintf("%s: Can't delete a masternode %s with a keyIDOwner=%s", __func__,
-                proTxHash.ToString(), EncodeDestination(dmn->pdmnState->keyIDOwner))));
+                proTxHash.ToString(), EncodeDestination(PKHash(dmn->pdmnState->keyIDOwner)))));
     }
     if (dmn->pdmnState->pubKeyOperator.Get().IsValid() && !DeleteUniqueProperty(dmn, dmn->pdmnState->pubKeyOperator)) {
         mnUniquePropertyMap = mnUniquePropertyMapSaved;

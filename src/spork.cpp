@@ -276,12 +276,12 @@ bool CSporkManager::GetSporkByHash(const uint256& hash, CSporkMessage &sporkRet)
 bool CSporkManager::SetSporkAddress(const std::string& strAddress) {
     LOCK(cs);
     CTxDestination dest = DecodeDestination(strAddress);
-    const CKeyID *keyID = boost::get<CKeyID>(&dest);
-    if (!keyID) {
+    const PKHash *pkHash = boost::get<PKHash>(&dest);
+    if (!pkHash) {
         LogPrintf("CSporkManager::SetSporkAddress -- Failed to parse spork address\n");
         return false;
     }
-    setSporkPubKeyIDs.insert(*keyID);
+    setSporkPubKeyIDs.insert(CKeyID(*pkHash));
     return true;
 }
 

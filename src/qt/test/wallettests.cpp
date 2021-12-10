@@ -113,7 +113,7 @@ void TestGUI()
     wallet->LoadWallet(firstRun);
     {
         LOCK(wallet->cs_wallet);
-        wallet->SetAddressBook(test.coinbaseKey.GetPubKey().GetID(), "", "receive");
+        wallet->SetAddressBook(PKHash(test.coinbaseKey.GetPubKey().GetID()), "", "receive");
         wallet->AddKeyPubKey(test.coinbaseKey, test.coinbaseKey.GetPubKey());
     }
     {

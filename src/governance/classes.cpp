@@ -541,8 +541,8 @@ void CSuperblock::ParsePaymentSchedule(const std::string& strPaymentAddresses, c
             - There might be an issue with multisig in the coinbase on mainnet, we will add support for it in a future release.
             - Post 12.3+ (test multisig coinbase transaction)
         */
-        const CScriptID *scriptID = boost::get<CScriptID>(&dest);
-        if (scriptID) {
+        const ScriptHash *scriptHash = boost::get<ScriptHash>(&dest);
+        if (scriptHash) {
             std::ostringstream ostr;
             ostr << "CSuperblock::ParsePaymentSchedule -- Script addresses are not supported yet : " << vecParsed1[i];
             LogPrintf("%s\n", ostr.str());
